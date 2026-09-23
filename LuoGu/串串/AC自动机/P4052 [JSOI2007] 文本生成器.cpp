@@ -1,0 +1,5 @@
+#include <ihxnan>
+
+void solve()
+{
+}

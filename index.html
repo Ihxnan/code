@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
+        <title>Code · Ihxnan</title>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <!-- 前端依赖全部本地化在 vendor/，页面不访问任何 CDN：离线可用，首屏也不再等第三方 -->
+        <link rel="stylesheet" href="/vendor/fonts/fraunces.css" />
+        <link rel="stylesheet" id="hljs-light" href="/vendor/hljs/styles/github.min.css" />
+        <link rel="stylesheet" id="hljs-dark" href="/vendor/hljs/styles/github-dark.min.css" disabled />
+        <script>
+            // 尽早应用主题，避免暗色用户看到亮色闪烁
+            (function () {
+                try {
+                    var t = localStorage.getItem('ui.theme');
+                    var dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+                    if (dark) document.documentElement.classList.add('theme-dark');
+                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+                } catch (e) {}
+            })();
+        </script>
+        <script src="/vendor/hljs/highlight.min.js"></script>
+        <script src="/vendor/hljs/languages/cpp.min.js"></script>
+        <script src="/vendor/hljs/languages/python.min.js"></script>
+        <script src="/vendor/marked/marked.min.js"></script>
+        <link rel="stylesheet" href="style.css" />
+</head>
+    <body>
+        <div class="container">
+            <header class="masthead">
+                <div class="mast-row">
+                    <h1>Ihxnan</h1>
+                    <span class="live-badge" id="livebadge"><span class="pulse"></span>LIVE</span>
+                    <button class="theme-toggle" id="themeToggle" type="button" title="切换亮/暗色" aria-label="切换亮/暗色">
+                        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                    </button>
+                </div>
+                <p class="mast-sub">Competitive Programming · Solutions</p>
+                <div class="mast-stats">
+                    <div class="stats" id="stats"></div>
+                    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+                </div>
+            </header>
+
+            <nav class="page-nav" id="pageNav">
+                <div class="nav-links">
+                    <a href="#section-atcoder">AtCoder<span class="nav-count" id="navcount-atcoder"></span></a>
+                    <a href="#section-codeforces">Codeforces<span class="nav-count" id="navcount-codeforces"></span></a>
+                    <a href="#section-nowcoder">牛客<span class="nav-count" id="navcount-nowcoder"></span></a>
+                    <a href="#section-hdu">杭电<span class="nav-count" id="navcount-hdu"></span></a>
+                    <a href="#section-xcpc">XCPC<span class="nav-count" id="navcount-xcpc"></span></a>
+                    <a href="#section-luogu">洛谷<span class="nav-count" id="navcount-luogu"></span></a>
+                    <a href="#section-course">算法课程设计<span class="nav-count" id="navcount-course"></span></a>
+                    <a href="#section-resources">资源<span class="nav-count" id="navcount-resources"></span></a>
+                </div>
+                <input id="filter" class="nav-filter" type="search" autocomplete="off" placeholder="筛选比赛 / 题号" />
+            </nav>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div>扫描文件系统中…</div>
+            </div>
+            <div id="error" class="error-msg" style="display: none">
+                <div>无法连接到后端</div>
+                <div class="hint">请先启动 <code>node server.js</code></div>
+            </div>
+
+            <div id="content" style="display: none">
+                <section id="section-atcoder">
+                    <h2>AtCoder</h2>
+                    <div class="contest-grid" id="grid-atcoder"></div>
+                </section>
+
+                <section id="section-codeforces">
+                    <h2>CodeForces</h2>
+                    <div class="contest-grid" id="grid-codeforces"></div>
+                </section>
+
+                <section id="section-nowcoder">
+                    <h2>NowCoder 牛客</h2>
+                    <div class="contest-grid" id="grid-nowcoder"></div>
+                </section>
+
+                <section id="section-hdu">
+                    <h2>HDU 杭电</h2>
+                    <div class="contest-grid" id="grid-hdu"></div>
+                </section>
+
+                <section id="section-xcpc">
+                    <h2>XCPC ICPC / CCPC 现场赛</h2>
+                    <div class="contest-grid" id="grid-xcpc"></div>
+                </section>
+
+                <section id="section-luogu">
+                    <h2>LuoGu 算法竞赛进阶指南</h2>
+                    <div class="luogu-section" id="luogu-content"></div>
+                </section>
+
+                <section id="section-course">
+                    <h2>算法课程设计</h2>
+                    <div class="contest-grid" id="grid-course"></div>
+                </section>
+
+                <section id="section-resources" style="display: none">
+                    <h2>
+                        资源
+                        <a class="pdf-all-btn" href="https://github.com/Ihxnan/template" target="_blank" rel="noopener">GitHub 仓库</a>
+                        <a class="pdf-all-btn" href="/Template/pdf/ACM模板合集.pdf" download="ACM模板合集.pdf">下载 PDF</a>
+                    </h2>
+                    <div class="res-group">
+                        <h3 class="res-sub">模板文档<span class="res-count" id="rescount-template"></span></h3>
+                        <div class="template-grid" id="template-list"></div>
+                    </div>
+                    <div class="res-group">
+                        <h3 class="res-sub">文件下载<span class="res-count" id="rescount-downloads"></span></h3>
+                        <div class="template-grid" id="downloads-list"></div>
+                    </div>
+                </section>
+
+                <div id="noResult" class="empty" style="display: none; text-align: center; padding: 2.5rem 0">
+                    没有匹配的比赛或题目
+                </div>
+
+                <div class="legend">
+                    <span><i class="dot done"></i> 已补完</span>
+                    <span><i class="dot ongoing"></i> 待补题</span>
+                    <span><i class="k-chip ok">A</i> 已解决</span>
+                    <span><i class="k-chip no">B</i> 待补题</span>
+                </div>
+            </div>
+
+            <footer>auto-generated · <a href="https://github.com/ihxnan/Code">GitHub</a></footer>
+        </div>
+
+        <!-- 比赛信息小窗（点击比赛卡片打开；题目可继续点进代码小窗） -->
+        <div class="modal-overlay" id="contestModal" onclick="closeContestView(event)">
+            <div class="modal modal-contest" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <span class="ct-head">
+                        <span class="ct-title" id="ctName">比赛</span>
+                        <span class="ct-tag" id="ctTag"></span>
+                    </span>
+                    <button class="close-btn" type="button" onclick="closeContestView()">&times;</button>
+                </div>
+                <div class="modal-body ct-body">
+                    <div class="ct-progress">
+                        <span class="ct-count" id="ctCount">0/0</span>
+                        <div class="progress ct-bar"><div class="progress-fill" id="ctBar"></div></div>
+                        <span class="ct-pct" id="ctPct"></span>
+                    </div>
+                    <div class="ct-block">
+                        <span class="ct-label">题目</span>
+                        <div class="ct-grid" id="ctGrid"></div>
+                    </div>
+                    <p class="ct-note" id="ctNote" style="display: none"></p>
+                </div>
+                <div class="ct-foot">
+                    <span class="ct-path" id="ctPath"></span>
+                    <span class="ct-actions">
+                        <a class="dl-btn" id="ctLink" target="_blank" rel="noopener noreferrer" style="display: none">打开原比赛 ↗</a>
+                        <button class="dl-btn" id="ctCfg" type="button" style="display: none">⚙ 比赛设置</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 代码查看模态框 -->
+        <div class="modal-overlay" id="codeModal" onclick="closeCodeView(event)">
+            <div class="modal" onclick="event.stopPropagation()">
+                <div class="modal-header" id="codeModalHeader">
+                    <span>
+                        <span class="filename" id="modalFilename">A.cpp</span>
+                        <span class="edit-badge" id="editBadge" style="display: none">✎ 编辑中</span>
+                        <a class="problem-link" id="modalProblemLink" target="_blank" style="display:none">查看原题 ↗</a>
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 0.4rem">
+                        <button class="dl-btn" id="modalEdit" type="button" style="display: none" title="编辑文件">编辑</button>
+                        <button class="dl-btn on" id="modalLine" type="button" style="display: none" title="显示/隐藏行号">行号</button>
+                        <button class="dl-btn" id="modalWrap" type="button" style="display: none" title="长行自动换行">换行</button>
+                        <button class="dl-btn" id="modalCopy" type="button" style="display: none">复制</button>
+                        <a class="dl-btn" id="modalDl" style="display: none" download>下载</a>
+                        <button class="dl-btn primary" id="modalSave" type="button" style="display: none" title="保存（写入磁盘文件，保存前会确认）">保存</button>
+                        <button class="dl-btn" id="modalCancel" type="button" style="display: none">完成</button>
+                        <span class="edit-status" id="editStatus" style="display: none"></span>
+                        <button class="close-btn" onclick="closeCodeView()">&times;</button>
+                    </span>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <div class="modal-view" id="modalView"></div>
+                    <div class="modal-edit" id="modalEditHost" style="display: none"></div>
+                </div>
+                <div class="editor-bar" id="editorBar" style="display: none">
+                    <span><b id="ebLang"></b> · <span id="ebPos">行 1, 列 1</span></span>
+                    <span class="eb-keys">点「保存」写入 · <kbd>Esc</kbd> 返回</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 比赛设置表单（.config.json） -->
+        <div class="modal-overlay" id="cfgModal" onclick="closeCfgView(event)">
+            <div class="modal modal-sm" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <span class="filename" id="cfgTitle">比赛设置</span>
+                    <button class="close-btn" onclick="closeCfgView()">&times;</button>
+                </div>
+                <div class="cfg-form">
+                    <label>比赛链接 (url)
+                        <input id="cfgUrl" type="text" spellcheck="false" placeholder="https://…" />
+                    </label>
+                    <p class="cfg-hint" id="cfgUrlHint"></p>
+                    <label>总题数 (cnt)
+                        <input id="cfgCnt" type="number" min="1" max="40" />
+                    </label>
+                    <p class="cfg-hint">保存后立即刷新页面上的比赛信息（链接 / 待补题槽位 / 进度）。</p>
+                    <div class="cfg-actions">
+                        <button class="dl-btn" id="cfgCancel" type="button">取消</button>
+                        <button class="dl-btn primary" id="cfgSave" type="button">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+
+        <!-- 自绘确认对话框（替代浏览器原生 confirm） -->
+        <div class="modal-overlay" id="confirmModal" onclick="uiSettle(false)">
+            <div class="modal modal-sm" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <span class="filename" id="confirmTitle">确认</span>
+                    <button class="close-btn" type="button" onclick="uiSettle(false)">&times;</button>
+                </div>
+                <div class="cfg-form">
+                    <p class="confirm-msg" id="confirmMsg"></p>
+                    <div class="cfg-actions">
+                        <button class="dl-btn" id="confirmCancel" type="button">取消</button>
+                        <button class="dl-btn primary" id="confirmOk" type="button">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 新建题解 -->
+        <div class="modal-overlay" id="mkModal" onclick="closeMkView(event)">
+            <div class="modal modal-sm" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <span>
+                        <span class="filename">新建题解</span>
+                        <span class="cfg-hint" id="mkContestName"></span>
+                    </span>
+                    <button class="close-btn" onclick="closeMkView()">&times;</button>
+                </div>
+                <div class="cfg-form">
+                    <label>题号（将创建 <code id="mkPathPreview"></code>）
+                        <input id="mkId" type="text" spellcheck="false" />
+                    </label>
+                    <label>语言
+                        <span class="mk-lang">
+                            <label class="mk-radio"><input type="radio" name="mkLang" value="cpp" checked /> C++17</label>
+                            <label class="mk-radio"><input type="radio" name="mkLang" value="py" /> Python</label>
+                        </span>
+                    </label>
+                    <p class="cfg-hint">创建后自动打开新文件；空题骨架采用当前语言模板。</p>
+                    <div class="cfg-actions">
+                        <button class="dl-btn" id="mkCancel" type="button">取消</button>
+                        <button class="dl-btn primary" id="mkSave" type="button">创建</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主逻辑脚本放所有 modal 之后：主流程 ensureEditBtns() 等需要 modal DOM 已就绪 -->
+        <script src="app.js"></script>
+    </body>
+</html>
