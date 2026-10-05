@@ -266,7 +266,8 @@
                 const groups = new Map(); // key -> { name, items }
                 for (const c of list) {
                     const parts = (c.dir || '').split('/');
-                    const name = parts.length >= 3 ? parts[1] : null;
+                    // 练习目录（如 CodeForces/Practice）自身即分组，与 Div. 2 / Educational 同级
+                    const name = parts.length >= 3 || c.isPractice ? parts[1] : null;
                     const key = name || '\u0000'; // 无分组统一放最后
                     if (!groups.has(key)) groups.set(key, { name, items: [] });
                     groups.get(key).items.push(c);
@@ -293,7 +294,12 @@
                         h.textContent = g.name;
                         const count = document.createElement('span');
                         count.className = 'coll-count';
-                        count.textContent = g.items.length + ' 场';
+                        // 练习分组按题数计，比赛分组按场数计
+                        if (g.items.some((c) => c.isPractice)) {
+                            count.textContent = g.items.reduce((n, c) => n + c.solvedCount, 0) + ' 题';
+                        } else {
+                            count.textContent = g.items.length + ' 场';
+                        }
                         const chev = document.createElement('span');
                         chev.className = 'coll-chevron';
                         chev.textContent = '▾';
@@ -388,15 +394,16 @@
                 }
                 solved.appendChild(cnt);
 
-                // 完成标签
-                const tag = document.createElement('div');
-                tag.className = 'finish-tag ' + (c.finished ? 'complete' : 'incomplete');
-                tag.textContent = c.finished ? '✓ 已补完' : '待补题';
-
+                // 完成标签（练习目录没有“补完”概念，不显示状态标签）
                 div.appendChild(dot);
                 div.appendChild(name);
                 div.appendChild(solved);
-                div.appendChild(tag);
+                if (!c.isPractice) {
+                    const tag = document.createElement('div');
+                    tag.className = 'finish-tag ' + (c.finished ? 'complete' : 'incomplete');
+                    tag.textContent = c.finished ? '✓ 已补完' : '待补题';
+                    div.appendChild(tag);
+                }
 
                 // 原比赛链接（新标签打开原站）；无 .config.json 时退化为不可点的提示标记
                 if (c.url) {
@@ -409,7 +416,7 @@
                     ext.textContent = '↗';
                     ext.addEventListener('click', (e) => e.stopPropagation());
                     div.appendChild(ext);
-                } else if (!c.hasConfig) {
+                } else if (!c.hasConfig && !c.isPractice) {
                     const missing = document.createElement('span');
                     missing.className = 'no-config-tag';
                     missing.title = '未配置比赛链接（.config.json 里没有 url）';
@@ -440,8 +447,8 @@
                     div.appendChild(detail);
                 }
 
-                // 比赛设置入口：有比赛目录即显示（无 .config.json 时进入「新建」模式）
-                if (EDITABLE && c.dir) {
+                // 比赛设置入口：有比赛目录即显示（无 .config.json 时进入「新建」模式；练习目录无此概念）
+                if (EDITABLE && c.dir && !c.isPractice) {
                     const gear = document.createElement('button');
                     gear.type = 'button';
                     gear.className = 'cfg-gear';
@@ -985,8 +992,12 @@
                 const done = !!c.finished;
                 document.getElementById('ctName').textContent = c.name;
                 const tag = document.getElementById('ctTag');
-                tag.className = 'ct-tag ' + (done ? 'complete' : 'incomplete');
-                tag.textContent = done ? '✓ 已补完' : '待补题';
+                // 练习目录没有“补完”概念，隐藏状态徽标
+                tag.style.display = c.isPractice ? 'none' : '';
+                if (!c.isPractice) {
+                    tag.className = 'ct-tag ' + (done ? 'complete' : 'incomplete');
+                    tag.textContent = done ? '✓ 已补完' : '待补题';
+                }
 
                 // 进度：total 未知时只报已做题数，不编造百分比
                 const countEl = document.getElementById('ctCount');
@@ -1037,13 +1048,17 @@
                 } else {
                     link.style.display = 'none';
                 }
-                document.getElementById('ctCfg').style.display = EDITABLE && c.dir ? '' : 'none';
+                document.getElementById('ctCfg').style.display = EDITABLE && c.dir && !c.isPractice ? '' : 'none';
 
                 // 缺什么就明说，省得疑惑「按钮去哪了」（缺 config 时 total 可能来自平台默认值，故分开表述）
                 const notes = [];
-                if (!c.hasConfig) notes.push('未配置 .config.json');
-                if (!c.url) notes.push('没有比赛链接');
-                if (c.total == null) notes.push('总题数未知，进度按已做题数显示');
+                if (c.isPractice) {
+                    notes.push('练习目录：文件名 = 比赛号 + 题号，点击题目查看代码');
+                } else {
+                    if (!c.hasConfig) notes.push('未配置 .config.json');
+                    if (!c.url) notes.push('没有比赛链接');
+                    if (c.total == null) notes.push('总题数未知，进度按已做题数显示');
+                }
                 const note = document.getElementById('ctNote');
                 note.textContent = notes.join(' · ');
                 note.style.display = notes.length ? '' : 'none';

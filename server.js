@@ -132,6 +132,9 @@ const ROOT = __dirname;
 /** 题目文件名校验正则：单大写字母(A)、数字1~20、或大写字母+数字（如 C1、C2、P10446） */
 const PROBLEM_FILE_PATTERN = /^[A-Z]$|^(?:[1-9]|1[0-9]|20)$|^[A-Z]\d+$/;
 
+/** 练习目录文件名校验正则：比赛号 + 题号，如 685B → problemset/problem/685/B */
+const PRACTICE_FILE_PATTERN = /^(\d+)([A-Z]\d*)$/;
+
 /** 获取目录下的题目文件列表（去重，按字母排序）
  *  loose=true 时（算法课程设计：vjudge 比赛题，文件名如「A Quoit Design.cpp」）
  *  取文件名首段作为题号（A），严格模式只认标准题名。 */
@@ -190,9 +193,57 @@ function isContestDir(dirPath) {
     return false;
 }
 
+/**
+ * 构建「练习」条目（如 CodeForces/Practice）：
+ * 文件名 = 比赛号 + 题号（685B），链接指向 problemset，无总题数概念。
+ */
+function buildPracticeContest(dirPath) {
+    const dirName = path.basename(dirPath);
+    let files = [];
+    try {
+        files = fs.readdirSync(dirPath).filter((f) => {
+            const ext = path.extname(f).toLowerCase();
+            return (ext === '.cpp' || ext === '.py') && !f.startsWith('.');
+        });
+    } catch {}
+    const seen = new Set();
+    const problems = [];
+    for (const f of files) {
+        const stem = path.basename(f, path.extname(f));
+        const m = PRACTICE_FILE_PATTERN.exec(stem);
+        if (!m || seen.has(stem)) continue;
+        seen.add(stem);
+        problems.push({
+            id: stem,
+            solved: true,
+            url: `https://codeforces.com/problemset/problem/${m[1]}/${m[2]}`,
+        });
+    }
+    // 比赛号数字升序，同号按题号
+    problems.sort((a, b) => {
+        const ma = PRACTICE_FILE_PATTERN.exec(a.id);
+        const mb = PRACTICE_FILE_PATTERN.exec(b.id);
+        return +ma[1] - +mb[1] || ma[2].localeCompare(mb[2]);
+    });
+
+    return {
+        name: dirName,
+        url: null,
+        finished: false,
+        isPractice: true,
+        solved: problems.map((p) => p.id),
+        solvedCount: problems.length,
+        total: null,
+        hasConfig: false,
+        dir: path.relative(ROOT, dirPath),
+        allProblems: problems,
+    };
+}
+
 /** 构建单个比赛条目 */
 function buildContest(dirPath, platform) {
     const dirName = path.basename(dirPath);
+    if (dirName === 'Practice') return buildPracticeContest(dirPath);
     const solved = getSolved(dirPath, platform === 'course');
     const solvedCount = solved.length;
 
